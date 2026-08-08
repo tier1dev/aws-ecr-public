@@ -34,7 +34,7 @@ jobs:
         with:
           github_token: ${{ secrets.github_token }}
           reporter: github-pr-review # Change reporter.
-          yamllint_flags: 'src/'
+          yamllint_flags: "src/"
 
   trivy:
     name: runner / trivy
@@ -49,14 +49,14 @@ jobs:
           github_token: ${{ secrets.github_token }}
           trivy_command: filesystem
           trivy_target: .
-        #   working_directory: . # Change working directory
+          #   working_directory: . # Change working directory
           level: info # Get more output from reviewdog
           reporter: github-pr-review # Change reviewdog reporter
           filter_mode: nofilter # Check all files, not just the diff
           fail_on_error: true # Fail action if errors are found
           flags: -tee # Add debug flag to reviewdog
           trivy_flags: "" # Optional
-          
+
   terraform_validate:
     name: runner / terraform validate
     runs-on: ubuntu-latest

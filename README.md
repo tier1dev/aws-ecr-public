@@ -1,85 +1,87 @@
-# ECR Repository Terraform Module
+# aws-ecr-public
 
-This Terraform module creates an AWS Elastic Container Registry (ECR) repository with configurable options for image scanning, encryption, and tagging. It is designed to follow best practices for security, resource management, and cost allocation.
+Terraform module for an [Amazon ECR Public Gallery](https://gallery.ecr.aws/) repository.
+Images pushed here are world-readable via `public.ecr.aws/<alias>/<name>`; push access
+stays IAM-gated. Gallery listing metadata (description, about, usage, architectures,
+operating systems) is managed alongside the repository.
 
-## Overview
+## Region requirement
 
-The module provisions an ECR repository in AWS with the following capabilities:
-
-- Enabling image scanning on push for added security.
-- Configuring encryption with either KMS (if enabled) or defaulting to AES256.
-- Applying standard tags to facilitate cost tracking, security, and governance.
-- Optionally setting up a repository policy to allow public push access (adjustable per security requirements).
-
-This module is built for compatibility with Terraform version 1.9.0 or later and assumes that the AWS provider configuration is managed at the root module level.
-
-## Features
-
-- **Image Scanning on Push**  
-  Automatically enables scanning on image push to detect vulnerabilities early.
-
-- **Configurable Encryption**  
-  Choose between KMS encryption (with a provided key) or rely on AES256 encryption as a secure default.
-
-- **Comprehensive Tagging**  
-  Tags are applied to the repository for better resource tracking and operational governance. Tags include Company, App, Environment, Owner, and CostCenter.
-
-- **Repository Policy for Push Access**  
-  The module includes an example repository policy, which allows all authenticated AWS users to push images. Adjust this policy according to your security needs.
-
-## Variables
-
-| Variable                  | Description                                                                                           | Type    | Default          |
-|---------------------------|-------------------------------------------------------------------------------------------------------|---------|------------------|
-| `repository_name`         | Name of the ECR repository.                                                                           | string  | _None (required)_|
-| `enable_image_scanning`   | Enable image scanning on push.                                                                        | bool    | true             |
-| `enable_kms_encryption`   | Set to true to enable KMS encryption; false to use AES256 encryption.                                  | bool    | false            |
-| `kms_key`                 | KMS Key ARN to use when enabling KMS encryption.                                                      | string  | ""               |
-| `company`                 | Company name for tagging.                                                                             | string  | "YourCompany"    |
-| `app`                     | Application name for tagging.                                                                         | string  | "YourApp"        |
-| `env`                     | Environment (e.g., dev, prod) for tagging.                                                            | string  | "dev"            |
-| `owner`                   | Owner of the resource for tagging.                                                                    | string  | "<owner@example.com>" |
-| `costcenter`              | Cost center for tagging.                                                                              | string  | "CC-0000"        |
+The ECR Public API only exists in **us-east-1**. The AWS provider passed to this module
+must be configured for that region (use a provider alias if your root module runs
+elsewhere).
 
 ## Usage
 
-Below is an example of how to use the module in your Terraform configuration:
-
-hcl
-module "ecr_repository" {
-  source = "./modules/ecr_repository"
-
-  repository_name         = "my-ecr-repo"
-  enable_image_scanning   = true
-  enable_kms_encryption   = false
-  kms_key                 = ""                # Provide KMS key ARN if enable_kms_encryption is true
-
-  company                 = "AcmeCorp"
-  app                     = "MyApplication"
-  env                     = "prod"
-  owner                   = "<admin@acmecorp.com>"
-  costcenter              = "CC-1234"
+```hcl
+provider "aws" {
+  alias  = "use1"
+  region = "us-east-1"
 }
 
-After applying, you can reference the output values from this module:
+module "public_repo" {
+  source = "git::https://github.com/tier1dev/aws-ecr-public.git?ref=v0.1.0"
 
-- `repository_url` – The URL of the ECR repository.
-- `repository_arn` – The ARN of the ECR repository.
+  providers = {
+    aws = aws.use1
+  }
 
-Example:
-hcl
-output "ecr_repo_url" {
-  value = module.ecr_repository.repository_url
+  repository_name = "my-image"
+  description     = "My public container image"
+
+  tags = {
+    Company     = "Skynet Core"
+    Application = "my-app"
+    Environment = "prod"
+    Owner       = "jon@team-skynet.io"
+    CostCenter  = "20001"
+  }
 }
+```
 
-output "ecr_repo_arn" {
-  value = module.ecr_repository.repository_arn
-}
+See [examples/basic](examples/basic) for a working example.
 
-## Notes
+<!-- BEGIN_TF_DOCS -->
+## Requirements
 
-- **Terraform Version:** Ensure you are using Terraform version 1.9.0 or later.
-- **AWS Provider Configuration:** The AWS provider should be configured at the root module level.
-- **Repository Policy:** The module includes an optional repository policy that grants public push access. Adjust or remove this policy based on your organization's security guidelines.
+| Name | Version |
+|------|---------|
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.9.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.0 |
 
-This module is designed to bring a level of standardization and best practices to managing ECR repositories within your organization. Customize as necessary to best fit your specific requirements.
+## Providers
+
+| Name | Version |
+|------|---------|
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.58.0 |
+
+## Modules
+
+No modules.
+
+## Resources
+
+| Name | Type |
+|------|------|
+| [aws_ecrpublic_repository.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecrpublic_repository) | resource |
+
+## Inputs
+
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_about_text"></a> [about\_text](#input\_about\_text) | Markdown 'About' text for the public gallery listing. | `string` | `null` | no |
+| <a name="input_architectures"></a> [architectures](#input\_architectures) | Architectures shown on the gallery listing (e.g. ["x86-64", "ARM 64"]). | `list(string)` | `null` | no |
+| <a name="input_description"></a> [description](#input\_description) | Short description shown on the public gallery listing. | `string` | `null` | no |
+| <a name="input_operating_systems"></a> [operating\_systems](#input\_operating\_systems) | Operating systems shown on the gallery listing (e.g. ["Linux"]). | `list(string)` | `null` | no |
+| <a name="input_repository_name"></a> [repository\_name](#input\_repository\_name) | Name of the ECR Public repository. | `string` | n/a | yes |
+| <a name="input_tags"></a> [tags](#input\_tags) | Tags applied to the repository (Company, Application, Environment, Owner, CostCenter, ...). | `map(string)` | n/a | yes |
+| <a name="input_usage_text"></a> [usage\_text](#input\_usage\_text) | Markdown usage instructions for the public gallery listing. | `string` | `null` | no |
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| <a name="output_arn"></a> [arn](#output\_arn) | Full ARN of the repository. |
+| <a name="output_registry_id"></a> [registry\_id](#output\_registry\_id) | Registry ID the repository was created in. |
+| <a name="output_repository_uri"></a> [repository\_uri](#output\_repository\_uri) | URI of the repository (public.ecr.aws/<alias>/<name>) for docker push/pull. |
+<!-- END_TF_DOCS -->
